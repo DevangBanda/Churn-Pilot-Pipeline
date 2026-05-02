@@ -4,6 +4,15 @@
 # same retry/backoff/cache-fallback behavior; destination is now a UC Volume instead of
 # the local data/raw/ directory.
 
+# COMMAND ----------
+# CELL 1 — assertion (run first; expect FileNotFoundError / empty listing)
+landing_files = dbutils.fs.ls("/Volumes/churn_prediction/bronze/landing_volume/")
+assert any(f.name.startswith("customer_churn_") and f.name.endswith(".csv") for f in landing_files), \
+    "Expected at least one customer_churn_*.csv in the landing volume"
+assert any(f.name.startswith("huggingface_churn_") and f.name.endswith(".json") for f in landing_files), \
+    "Expected at least one huggingface_churn_*.json in the landing volume"
+
+# COMMAND ----------
 import json
 import time
 from datetime import datetime
