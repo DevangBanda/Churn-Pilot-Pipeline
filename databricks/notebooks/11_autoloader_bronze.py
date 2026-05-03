@@ -38,7 +38,7 @@ def log(pipeline_name: str, level: str, message: str) -> None:
 
 
 # COMMAND ----------
-# Auto Loader stream: CSV + JSON landing files -> single Bronze table with source/type columns
+# Auto Loader stream: GitHub CSV landing files (customer_churn_*.csv) -> Bronze table with source/type metadata columns
 raw_stream = (
     spark.readStream.format("cloudFiles")
     .option("cloudFiles.format", "csv")
