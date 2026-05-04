@@ -1,7 +1,7 @@
 # Databricks notebook source
 # 20_validation_dlt.py
 # Replaces src/data_validation.py. Re-expresses DataValidator's checks
-# (missing values, duplicates, dtype mismatches, negative numerics on
+# (missing customerID, duplicate customerID, negative numerics on
 # tenure/MonthlyCharges/TotalCharges) as DLT expectations, and writes a
 # violation-summary Delta table queryable via SQL/BI instead of opening an .xlsx.
 
@@ -30,6 +30,10 @@ def customer_churn_validated():
     # Uniqueness on customerID (DataValidator's duplicate-record check) is enforced
     # here via dropDuplicates rather than as an expectation, since DLT expectations
     # validate row-level predicates and cannot express a set-level uniqueness check.
+    # Note: this actively removes duplicate customerID rows from the validated table,
+    # whereas the original DataValidator only counted duplicates for reporting and
+    # never removed them — a deliberate improvement for a "validated" Silver-bound
+    # table, not a literal port of the old behavior.
     return (
         dlt.read("churn_prediction.bronze.customer_churn_raw")
         .dropDuplicates(["customerID"])
@@ -42,16 +46,17 @@ def customer_churn_validated():
 # customer_churn_validated, e.g. from notebook 30 or a dedicated validation-summary task.
 def write_quality_metrics():
     raw = spark.table("churn_prediction.bronze.customer_churn_raw")
+    total = raw.count()
     checks = []
     for col in NUMERIC_COLS:
         failed = raw.filter((F.col(col).isNotNull()) & (F.col(col) < 0)).count()
-        checks.append((f"{col}_non_negative", raw.count() - failed, failed))
+        checks.append((f"{col}_non_negative", total - failed, failed))
 
     missing_id = raw.filter(F.col("customerID").isNull()).count()
-    checks.append(("customerID_not_null", raw.count() - missing_id, missing_id))
+    checks.append(("customerID_not_null", total - missing_id, missing_id))
 
-    dup_id = raw.count() - raw.dropDuplicates(["customerID"]).count()
-    checks.append(("customerID_unique", raw.count() - dup_id, dup_id))
+    dup_id = total - raw.dropDuplicates(["customerID"]).count()
+    checks.append(("customerID_unique", total - dup_id, dup_id))
 
     rows = [(name, passed, failed) for name, passed, failed in checks]
     (
