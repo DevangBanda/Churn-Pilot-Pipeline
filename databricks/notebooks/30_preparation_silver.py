@@ -44,6 +44,12 @@ for col_name in categorical_cols:
 df = df.withColumn("Churn", F.when(F.col("Churn") == "Yes", 1).otherwise(0))
 
 one_hot_cols = [c for c in categorical_cols if c != "Churn"]
+# NOTE: original pandas used pd.get_dummies(..., drop_first=True), which drops one
+# reference category per column to reduce dimensionality/multicollinearity. This
+# PySpark port creates a dummy column for every distinct value (no drop_first
+# equivalent), so it produces one extra column per categorical feature versus the
+# original. Acceptable for tree-based models (robust to redundant correlated dummy
+# columns), but worth noting when comparing feature counts in Task 12's parity check.
 for col_name in one_hot_cols:
     distinct_vals = [r[0] for r in df.select(col_name).distinct().collect()]
     for val in distinct_vals:
@@ -54,6 +60,12 @@ for col_name in one_hot_cols:
 # COMMAND ----------
 # 3. engineer_features: tenure_group, charges_per_tenure, total_to_monthly_ratio, avg_monthly_charges
 df = (
+    # NOTE: original pandas used pd.cut(bins=[0,12,24,48,72], labels=[...]).cat.codes,
+    # which yields integer codes (0/1/2/3) and, due to default right=True bins
+    # (interval (0,12]), assigns an undefined code of -1 to tenure=0 customers — an
+    # edge-case bug in the original. This version deliberately uses readable string
+    # labels (more interpretable for a Silver "clean" table) with corrected inclusive
+    # "<=" boundaries so tenure=0 customers are correctly bucketed into "0-12".
     df.withColumn(
         "tenure_group",
         F.when(F.col("tenure") <= 12, "0-12")
@@ -61,9 +73,9 @@ df = (
          .when(F.col("tenure") <= 48, "25-48")
          .otherwise("49+"),
     )
-    .withColumn("charges_per_tenure", F.col("TotalCharges") / F.greatest(F.col("tenure"), F.lit(1)))
+    .withColumn("charges_per_tenure", F.col("MonthlyCharges") / (F.col("tenure") + F.lit(1)))
     .withColumn("total_to_monthly_ratio", F.col("TotalCharges") / F.greatest(F.col("MonthlyCharges"), F.lit(0.01)))
-    .withColumn("avg_monthly_charges", F.col("TotalCharges") / F.greatest(F.col("tenure"), F.lit(1)))
+    .withColumn("avg_monthly_charges", F.col("TotalCharges") / (F.col("tenure") + F.lit(1)))
 )
 
 # COMMAND ----------
