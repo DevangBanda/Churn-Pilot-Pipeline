@@ -74,6 +74,11 @@ df = (
          .otherwise("49+"),
     )
     .withColumn("charges_per_tenure", F.col("MonthlyCharges") / (F.col("tenure") + F.lit(1)))
+    # NOTE: original pandas used a bare `TotalCharges / MonthlyCharges` with no
+    # zero-guard, which yields inf/NaN when MonthlyCharges == 0. This PySpark port
+    # adds F.greatest(MonthlyCharges, 0.01) as a safe-division floor to avoid that
+    # division-by-zero edge case. Values will only differ from the original for the
+    # rare rows where MonthlyCharges == 0 — worth knowing about for Task 12's parity check.
     .withColumn("total_to_monthly_ratio", F.col("TotalCharges") / F.greatest(F.col("MonthlyCharges"), F.lit(0.01)))
     .withColumn("avg_monthly_charges", F.col("TotalCharges") / (F.col("tenure") + F.lit(1)))
 )
