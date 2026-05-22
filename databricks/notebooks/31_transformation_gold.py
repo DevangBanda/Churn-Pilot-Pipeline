@@ -25,14 +25,24 @@ TARGET_TABLE = "churn_prediction.gold.customer_features"
 
 silver = spark.table(SOURCE_TABLE)
 
+SERVICE_BASE_COLS = {
+    "PhoneService", "MultipleLines", "InternetService", "OnlineSecurity",
+    "OnlineBackup", "DeviceProtection", "TechSupport", "StreamingTV", "StreamingMovies",
+}
 SERVICE_COLS = [
     c for c in silver.columns
-    if c.endswith(("_Yes", "_DSL", "_Fiber_optic", "_No_phone_service", "_No_internet_service"))
-    and c.split("_")[0] not in ("Churn", "gender")
+    if c.split("_")[0] in SERVICE_BASE_COLS
+    and not c.endswith(("_No", "_No_phone_service", "_No_internet_service"))
 ]
 
 # COMMAND ----------
 # create_aggregated_features
+high_risk_flag = (
+    F.when(F.col("PaymentMethod_Electronic_check") == 1, 1).otherwise(0)
+    if "PaymentMethod_Electronic_check" in silver.columns
+    else F.lit(0)
+)
+
 gold = (
     silver
     .withColumn("total_services", sum(F.col(c) for c in SERVICE_COLS))
@@ -49,11 +59,7 @@ gold = (
          .when(F.col("tenure") >= 12, "developing")
          .otherwise("new"),
     )
-    .withColumn(
-        "high_risk_payment",
-        F.when(F.col("PaymentMethod_Electronic_check") == 1, 1).otherwise(0)
-        if "PaymentMethod_Electronic_check" in silver.columns else F.lit(0),
-    )
+    .withColumn("high_risk_payment", high_risk_flag)
 )
 
 # COMMAND ----------
