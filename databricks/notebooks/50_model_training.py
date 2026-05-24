@@ -76,8 +76,8 @@ def evaluate_model(model, X_test, y_test):
 
 # COMMAND ----------
 for model_name, model in [
-    ("logistic_regression", LogisticRegression(class_weight="balanced", max_iter=1000)),
-    ("random_forest", RandomForestClassifier(class_weight="balanced", n_estimators=200, random_state=42)),
+    ("logistic_regression", LogisticRegression(random_state=42, class_weight="balanced", max_iter=1000)),
+    ("random_forest", RandomForestClassifier(n_estimators=100, random_state=42, class_weight="balanced")),
 ]:
     with mlflow.start_run(run_name=model_name) as run:
         model.fit(X_train, y_train)
