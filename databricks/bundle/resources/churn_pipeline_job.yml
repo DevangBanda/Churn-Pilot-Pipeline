@@ -28,7 +28,7 @@ resources:
         - task_key: ingestion
           job_cluster_key: churn_cluster
           notebook_task:
-            notebook_path: ../notebooks/10_ingestion_to_landing.py
+            notebook_path: ../../notebooks/10_ingestion_to_landing.py
           timeout_seconds: 1800
           max_retries: 1                 # == Airflow's retries=1
           min_retry_interval_millis: 300000  # == Airflow's retry_delay=timedelta(minutes=5)
@@ -38,7 +38,7 @@ resources:
             - task_key: ingestion
           job_cluster_key: churn_cluster
           notebook_task:
-            notebook_path: ../notebooks/11_autoloader_bronze.py
+            notebook_path: ../../notebooks/11_autoloader_bronze.py
           max_retries: 1
           min_retry_interval_millis: 300000
 
@@ -47,7 +47,7 @@ resources:
             - task_key: raw_storage_bronze
           job_cluster_key: churn_cluster
           notebook_task:
-            notebook_path: ../notebooks/20_validation_dlt.py
+            notebook_path: ../../notebooks/20_validation_dlt.py
           max_retries: 1
           min_retry_interval_millis: 300000
 
@@ -56,7 +56,7 @@ resources:
             - task_key: validation
           job_cluster_key: churn_cluster
           notebook_task:
-            notebook_path: ../notebooks/30_preparation_silver.py
+            notebook_path: ../../notebooks/30_preparation_silver.py
           max_retries: 1
           min_retry_interval_millis: 300000
 
@@ -65,7 +65,7 @@ resources:
             - task_key: preparation_silver
           job_cluster_key: churn_cluster
           notebook_task:
-            notebook_path: ../notebooks/31_transformation_gold.py
+            notebook_path: ../../notebooks/31_transformation_gold.py
           max_retries: 1
           min_retry_interval_millis: 300000
 
@@ -74,7 +74,7 @@ resources:
             - task_key: transformation_gold
           job_cluster_key: churn_cluster
           notebook_task:
-            notebook_path: ../notebooks/40_feature_store_setup.py
+            notebook_path: ../../notebooks/40_feature_store_setup.py
           max_retries: 1
           min_retry_interval_millis: 300000
 
@@ -88,7 +88,7 @@ resources:
             - task_key: feature_store
           job_cluster_key: churn_cluster
           notebook_task:
-            notebook_path: ../notebooks/50_model_training.py
+            notebook_path: ../../notebooks/50_model_training.py
           max_retries: 1
           min_retry_interval_millis: 300000
 
@@ -97,6 +97,6 @@ resources:
             - task_key: model_building
           job_cluster_key: churn_cluster
           notebook_task:
-            notebook_path: ../notebooks/70_parity_check.py
+            notebook_path: ../../notebooks/70_parity_check.py
           max_retries: 1
           min_retry_interval_millis: 300000
