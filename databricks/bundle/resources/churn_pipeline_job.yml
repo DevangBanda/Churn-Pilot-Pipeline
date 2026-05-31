@@ -1,0 +1,102 @@
+# churn_pipeline_job.yml — recreates the 9-node DAG from
+# airflow/dags/churn_prediction_pipeline.py 1:1, including its operational settings:
+# retries=1, retry_delay=5min, schedule=every 6 hours, catchup=False, max_active_runs=1.
+resources:
+  jobs:
+    churn_prediction_pipeline:
+      name: churn_prediction_pipeline
+      max_concurrent_runs: 1   # == Airflow's max_active_runs=1
+
+      schedule:
+        quartz_cron_expression: "0 0 */6 * * ?"   # == Airflow's schedule=timedelta(hours=6)
+        timezone_id: "UTC"
+        pause_status: UNPAUSED                     # == Airflow's catchup=False (no backfill on enable)
+
+      email_notifications:
+        on_failure:
+          - <ALERT_EMAIL>
+
+      job_clusters:
+        - job_cluster_key: churn_cluster
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            num_workers: 2
+            data_security_mode: SINGLE_USER
+
+      tasks:
+        - task_key: ingestion
+          job_cluster_key: churn_cluster
+          notebook_task:
+            notebook_path: ../../notebooks/10_ingestion_to_landing.py
+          timeout_seconds: 1800
+          max_retries: 1                 # == Airflow's retries=1
+          min_retry_interval_millis: 300000  # == Airflow's retry_delay=timedelta(minutes=5)
+
+        - task_key: raw_storage_bronze
+          depends_on:
+            - task_key: ingestion
+          job_cluster_key: churn_cluster
+          notebook_task:
+            notebook_path: ../../notebooks/11_autoloader_bronze.py
+          max_retries: 1
+          min_retry_interval_millis: 300000
+
+        - task_key: validation
+          depends_on:
+            - task_key: raw_storage_bronze
+          job_cluster_key: churn_cluster
+          notebook_task:
+            notebook_path: ../../notebooks/20_validation_dlt.py
+          max_retries: 1
+          min_retry_interval_millis: 300000
+
+        - task_key: preparation_silver
+          depends_on:
+            - task_key: validation
+          job_cluster_key: churn_cluster
+          notebook_task:
+            notebook_path: ../../notebooks/30_preparation_silver.py
+          max_retries: 1
+          min_retry_interval_millis: 300000
+
+        - task_key: transformation_gold
+          depends_on:
+            - task_key: preparation_silver
+          job_cluster_key: churn_cluster
+          notebook_task:
+            notebook_path: ../../notebooks/31_transformation_gold.py
+          max_retries: 1
+          min_retry_interval_millis: 300000
+
+        - task_key: feature_store
+          depends_on:
+            - task_key: transformation_gold
+          job_cluster_key: churn_cluster
+          notebook_task:
+            notebook_path: ../../notebooks/40_feature_store_setup.py
+          max_retries: 1
+          min_retry_interval_millis: 300000
+
+        # NOTE: the original DAG's "data_versioning" task has no Databricks-side
+        # equivalent to *run* (Task 8 established that Delta time travel + UC lineage
+        # are passive properties of every write above) — it is intentionally omitted
+        # from the task graph rather than stubbed out as a no-op.
+
+        - task_key: model_building
+          depends_on:
+            - task_key: feature_store
+          job_cluster_key: churn_cluster
+          notebook_task:
+            notebook_path: ../../notebooks/50_model_training.py
+          max_retries: 1
+          min_retry_interval_millis: 300000
+
+        - task_key: pipeline_success
+          depends_on:
+            - task_key: model_building
+          job_cluster_key: churn_cluster
+          notebook_task:
+            notebook_path: ../../notebooks/70_parity_check.py
+          max_retries: 1
+          min_retry_interval_millis: 300000
