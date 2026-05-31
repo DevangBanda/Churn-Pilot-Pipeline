@@ -45,11 +45,17 @@ resources:
         - task_key: validation
           depends_on:
             - task_key: raw_storage_bronze
-          job_cluster_key: churn_cluster
-          notebook_task:
-            notebook_path: ../../notebooks/20_validation_dlt.py
-          max_retries: 1
-          min_retry_interval_millis: 300000
+          # 20_validation_dlt.py is a Delta Live Tables notebook
+          # (@dlt.table(name="customer_churn_validated", ...)). @dlt.table
+          # functions only materialize their target table inside a real DLT
+          # pipeline — a plain notebook_task would just register the decorator
+          # metadata without ever writing the table that 30_preparation_silver.py
+          # depends on. Route this task at the DLT pipeline resource instead;
+          # pipeline_task has no job_cluster_key (the pipeline manages its own
+          # compute via its `clusters` block) and no max_retries /
+          # min_retry_interval_millis (retry config is not a pipeline_task field).
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.churn_validation_pipeline.id}
 
         - task_key: preparation_silver
           depends_on:

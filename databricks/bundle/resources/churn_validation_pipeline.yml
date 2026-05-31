@@ -1,0 +1,25 @@
+# churn_validation_pipeline.yml — Delta Live Tables pipeline resource.
+#
+# Why this exists: 20_validation_dlt.py is a genuine DLT notebook
+# (@dlt.table(name="customer_churn_validated", ...) with @dlt.expect_or_drop /
+# @dlt.expect expectations). @dlt.table-decorated functions only materialize
+# their target table when the notebook is run inside a real DLT pipeline —
+# running it as a plain notebook_task just registers decorator metadata and
+# never writes churn_prediction.bronze.customer_churn_validated, which
+# 30_preparation_silver.py (and everything downstream) depends on. This
+# pipeline resource is what the job's "validation" task targets via a
+# pipeline_task (see churn_pipeline_job.yml), giving the DLT notebook the
+# pipeline runtime it requires. target/catalog match the plan's stated
+# "target schema = churn_prediction.bronze, target catalog = churn_prediction".
+resources:
+  pipelines:
+    churn_validation_pipeline:
+      name: churn_validation_pipeline
+      catalog: churn_prediction
+      target: bronze
+      libraries:
+        - notebook:
+            path: ../../notebooks/20_validation_dlt.py
+      clusters:
+        - label: default
+          num_workers: 1
