@@ -6,7 +6,7 @@
 
 # COMMAND ----------
 # CELL 1 — assertion (run first; expect FileNotFoundError / empty listing)
-landing_files = dbutils.fs.ls("/Volumes/churn_prediction/bronze/landing_volume/")
+landing_files = dbutils.fs.ls("/Volumes/churn_pilot/bronze/landing_volume/")
 assert any(f.name.startswith("customer_churn_") and f.name.endswith(".csv") for f in landing_files), \
     "Expected at least one customer_churn_*.csv in the landing volume"
 assert any(f.name.startswith("huggingface_churn_") and f.name.endswith(".json") for f in landing_files), \
@@ -19,7 +19,7 @@ from datetime import datetime
 
 import requests
 
-LANDING_PATH = "/Volumes/churn_prediction/bronze/landing_volume"
+LANDING_PATH = "/Volumes/churn_pilot/bronze/landing_volume"
 CSV_URL = "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv"
 HF_API_URL = "https://datasets-server.huggingface.co/rows?dataset=scikit-learn%2Fchurn-prediction&config=default&split=train&offset=0&length=100"
 

@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  pipeline:
+    build: .
+    image: churnpilot:latest
+    container_name: churnpilot
+    env_file:
+      - .env
+    environment:
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-churn-data-lake}
+      - DB_PATH=${DB_PATH:-data/processed/churn_data.db}
+      - PYTHONPATH=/app
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      - ./config:/app/config
+    ports:
+      - "8000:8000"  # For future API endpoints
+    command: ["python", "main_pipeline.py"]

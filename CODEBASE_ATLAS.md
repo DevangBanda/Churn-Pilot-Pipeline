@@ -1,4 +1,4 @@
-# Codebase Atlas — Customer Churn Prediction ML Pipeline
+# Codebase Atlas — ChurnPilot ML Pipeline
 
 > Reference doc for understanding this repo and planning its migration to Databricks.
 > Generated from a full read of the source tree on 2026-06-07.
@@ -44,14 +44,14 @@ for experiment tracking.
 | `data_transformation_storage.py` → `DataTransformationStorage` | **Step 6.** Builds aggregated features (`total_services`, `service_density`, `customer_value_segment`, `tenure_stability`, `high_risk_payment`), interaction features (`tenure_monthly_interaction`, etc.), applies `StandardScaler`/`MinMaxScaler`, persists everything to a **SQLite** DB (`customer_features`, `feature_metadata`, `training_sets` tables + indexes) and writes a versioned training-set CSV. | latest cleaned/processed CSV | `data/processed/churn_data.db` (SQLite), `data/processed/training_sets/<set_id>.csv` |
 | `feature_store.py` → `SimpleChurnFeatureStore` | **Step 7.** A hand-rolled, CSV-based "feature store": auto-discovers latest training set, writes `churn_features.csv` (+ 100-row sample), exposes `get_features(entity_id)`, `get_training_dataset()`, `get_feature_metadata()` (df/Markdown), and a feature-summary helper. | latest `data/processed/training_sets/*.csv` | `data/feature_store/churn_features.csv`, `churn_features_sample.csv`, `feature_metadata.md` |
 | `data_versioning.py` → `DVCVersioning`, `version_pipeline_step()` | **Step 8.** Wraps the `dvc` and `git` CLIs via `subprocess`: init/configure DVC, add data to tracking, commit + tag versions, list/checkout versions, push/pull to an S3 remote (`s3://<bucket>/dvc-storage`). `version_pipeline_step()` is the convenience hook called after each pipeline stage to create a tagged Git commit. | git/DVC state, `.env` (S3 creds) | Git commits/tags, `.dvc` files, optional S3 remote pushes |
-| `build_model.py` → `TrainCustomModel` | **Step 9.** Loads the latest training set, drops `customerID`, coerces `TotalCharges`, keeps numeric features, stratified 80/20 split, trains `LogisticRegression` or `RandomForestClassifier` (`class_weight='balanced'`), computes accuracy/precision/recall/F1, **logs params/metrics/model to MLflow** (`mlflow.set_tracking_uri(...)`, default `file:///tmp/mlflow-runs`, experiment `"Customer Churn Prediction"`), and saves a `.joblib` artifact. | latest training set CSV | `data/models/logreg_model_<ts>.joblib`, MLflow run (local file store) |
+| `build_model.py` → `TrainCustomModel` | **Step 9.** Loads the latest training set, drops `customerID`, coerces `TotalCharges`, keeps numeric features, stratified 80/20 split, trains `LogisticRegression` or `RandomForestClassifier` (`class_weight='balanced'`), computes accuracy/precision/recall/F1, **logs params/metrics/model to MLflow** (`mlflow.set_tracking_uri(...)`, default `file:///tmp/mlflow-runs`, experiment `"ChurnPilot"`), and saves a `.joblib` artifact. | latest training set CSV | `data/models/logreg_model_<ts>.joblib`, MLflow run (local file store) |
 | `utils/logger.py` | Centralized `PipelineLogger` — caches one logger per pipeline name, dual file+console handlers, writes to `logs/<pipeline_name>.log`. `PIPELINE_NAMES` maps step → log filename. | — | `logs/*.log` |
 | `setup_dvc.sh`, `startup.sh`, `airflow_docker/start_airflow_docker.sh` | Shell helpers: install/init DVC + configure S3 remote from `.env`; Docker container entrypoint dispatcher (`dvc-setup` / `airflow-init` / `airflow-webserver` / `airflow-scheduler` / default pipeline run); convenience script to (re)build & launch the Airflow Docker stack. | — | — |
 
 ### `airflow/`
 | File | Purpose |
 |---|---|
-| `dags/churn_prediction_pipeline.py` | Airflow DAG `churn_prediction_pipeline` — **9 sequential `PythonOperator` tasks** (`data_ingestion → raw_data_storage → data_validation → data_preparation → data_transformation → feature_store → data_versioning → model_building → pipeline_success`), each spawning a subprocess that imports and calls the matching `src/*` class. Scheduled every 6 hours, `catchup=False`, 1 retry. This is a **near 1:1 mirror of `main_pipeline.py`**, just orchestrated task-by-task instead of as one script. |
+| `dags/churn_pilot_pipeline.py` | Airflow DAG `churn_pilot_pipeline` — **9 sequential `PythonOperator` tasks** (`data_ingestion → raw_data_storage → data_validation → data_preparation → data_transformation → feature_store → data_versioning → model_building → pipeline_success`), each spawning a subprocess that imports and calls the matching `src/*` class. Scheduled every 6 hours, `catchup=False`, 1 retry. This is a **near 1:1 mirror of `main_pipeline.py`**, just orchestrated task-by-task instead of as one script. |
 | `setup_airflow.py` | Initializes the Airflow metadata DB and creates the admin user (`AIRFLOW_WWW_USER_USERNAME/PASSWORD`, default `admin`/`admin`). |
 | `airflow.cfg`, `simple_auth_manager_passwords.json.generated`, `logs/` | Standard Airflow runtime config/state (local SQLite-backed Airflow metastore by default). |
 
@@ -154,7 +154,7 @@ DVC/Airflow) is exactly the kind of local-only scaffolding Databricks primitives
 | `feature_store.py` (hand-rolled CSV store) | **Databricks Feature Engineering in Unity Catalog** (feature tables + `FeatureEngineeringClient`, point-in-time lookups, online/offline serving) |
 | `data_versioning.py` (DVC + Git subprocess wrapper, S3 remote) | **Delta Lake time travel** (`VERSION AS OF` / `TIMESTAMP AS OF`) + **Unity Catalog lineage** — eliminates the entire DVC/S3/Git-tag dance for data; Git remains for *code* versioning only |
 | `build_model.py` (sklearn + local MLflow file store + joblib) | **Databricks-managed MLflow** (`databricks` tracking URI), **Unity Catalog Model Registry** (`models:/catalog.schema.model`), optionally distributed training via **Spark ML** / `mlflow.pyfunc` for serving |
-| `airflow/dags/churn_prediction_pipeline.py` (Airflow DAG, subprocess-per-task) | **Databricks Workflows** (Jobs with task graphs, retries, alerting) — same 9-node DAG shape, but tasks become notebook/Python-wheel/SQL tasks instead of `subprocess.run([sys.executable, '-c', ...])` |
+| `airflow/dags/churn_pilot_pipeline.py` (Airflow DAG, subprocess-per-task) | **Databricks Workflows** (Jobs with task graphs, retries, alerting) — same 9-node DAG shape, but tasks become notebook/Python-wheel/SQL tasks instead of `subprocess.run([sys.executable, '-c', ...])` |
 | `database/init.sql` (SQLite DDL) | UC table DDL (`CREATE TABLE catalog.schema.table ... USING DELTA`), generated/managed via notebooks or Databricks Asset Bundles |
 | S3 mirror logic in `raw_data_storage.py` / `data_versioning.setup_s3_remote()` | **External Locations + Storage Credentials** in Unity Catalog (governed access to the same S3 buckets, no embedded AWS keys) |
 
@@ -163,7 +163,7 @@ DVC/Airflow) is exactly the kind of local-only scaffolding Databricks primitives
 ## 5. Step-by-Step Migration Plan → Databricks (Delta Lake + MLflow + Unity Catalog + Workflows)
 
 ### Phase 0 — Foundations
-1. Stand up/confirm a **Unity Catalog metastore**; create a catalog (e.g. `churn_prediction`)
+1. Stand up/confirm a **Unity Catalog metastore**; create a catalog (e.g. `churn_pilot`)
    with `bronze`, `silver`, `gold`, and `ml` schemas.
 2. Create **External Locations + Storage Credentials** pointing at the existing S3 bucket
    (`churn-data-lake`) so raw landing files can be read without embedding AWS keys (replaces
@@ -228,11 +228,11 @@ DVC/Airflow) is exactly the kind of local-only scaffolding Databricks primitives
 
 ### Phase 6 — Model Training (replaces `build_model.py`)
 17. Point `mlflow.set_tracking_uri("databricks")` (or omit — it's the default in a Databricks
-    notebook) and `mlflow.set_experiment("/Shared/churn_prediction")`; keep the
+    notebook) and `mlflow.set_experiment("/Shared/churn_pilot")`; keep the
     `LogisticRegression`/`RandomForestClassifier` training + `accuracy/precision/recall/f1`
     evaluation logic as-is (pure sklearn, portable verbatim).
 18. Replace `joblib.dump` + local `data/models/` with `mlflow.sklearn.log_model(...,
-    registered_model_name="churn_prediction.ml.churn_model")` targeting the **Unity Catalog
+    registered_model_name="churn_pilot.ml.churn_model")` targeting the **Unity Catalog
     Model Registry**, giving you governed model versions, aliases (`@champion`/`@challenger`),
     and approval workflows out of the box.
 19. (Optional, post-migration enhancement) swap to `mlflow.pyfunc` + **Model Serving** for a
@@ -244,7 +244,7 @@ DVC/Airflow) is exactly the kind of local-only scaffolding Databricks primitives
     (`ingestion → raw_storage/bronze → validation → preparation → transformation → feature_store
     → versioning(n/a) → model_building → success`) as a **Databricks Workflow (Job)** with one
     task per stage (notebook or Python-wheel tasks), `depends_on` edges mirroring the existing
-    `>>` chain in `churn_prediction_pipeline.py`.
+    `>>` chain in `churn_pilot_pipeline.py`.
 21. Carry over the DAG's operational settings 1:1 — `retries=1`, `retry_delay=5min`,
     `schedule=timedelta(hours=6)`, `catchup=False`, `max_active_runs=1`, failure
     notifications — using native Workflows job-level retry/schedule/alert config (drop the

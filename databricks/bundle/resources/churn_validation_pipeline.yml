@@ -5,17 +5,17 @@
 # @dlt.expect expectations). @dlt.table-decorated functions only materialize
 # their target table when the notebook is run inside a real DLT pipeline —
 # running it as a plain notebook_task just registers decorator metadata and
-# never writes churn_prediction.bronze.customer_churn_validated, which
+# never writes churn_pilot.bronze.customer_churn_validated, which
 # 30_preparation_silver.py (and everything downstream) depends on. This
 # pipeline resource is what the job's "validation" task targets via a
 # pipeline_task (see churn_pipeline_job.yml), giving the DLT notebook the
 # pipeline runtime it requires. target/catalog match the plan's stated
-# "target schema = churn_prediction.bronze, target catalog = churn_prediction".
+# "target schema = churn_pilot.bronze, target catalog = churn_pilot".
 resources:
   pipelines:
     churn_validation_pipeline:
       name: churn_validation_pipeline
-      catalog: churn_prediction
+      catalog: churn_pilot
       target: bronze
       libraries:
         - notebook:

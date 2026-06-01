@@ -7,7 +7,7 @@
 
 # COMMAND ----------
 # CELL 1 — assertion (run first; expect AnalysisException: Table or view not found)
-metrics = spark.table("churn_prediction.bronze.data_quality_metrics")
+metrics = spark.table("churn_pilot.bronze.data_quality_metrics")
 assert metrics.count() > 0
 assert set(metrics.columns) >= {"check_name", "passed_count", "failed_count", "checked_at"}
 
@@ -35,7 +35,7 @@ def customer_churn_validated():
     # never removed them — a deliberate improvement for a "validated" Silver-bound
     # table, not a literal port of the old behavior.
     return (
-        dlt.read("churn_prediction.bronze.customer_churn_raw")
+        dlt.read("churn_pilot.bronze.customer_churn_raw")
         .dropDuplicates(["customerID"])
     )
 
@@ -45,7 +45,7 @@ def customer_churn_validated():
 # Run this as a regular (non-DLT) batch cell after the DLT pipeline has produced
 # customer_churn_validated, e.g. from notebook 30 or a dedicated validation-summary task.
 def write_quality_metrics():
-    raw = spark.table("churn_prediction.bronze.customer_churn_raw")
+    raw = spark.table("churn_pilot.bronze.customer_churn_raw")
     total = raw.count()
     checks = []
     for col in NUMERIC_COLS:
@@ -63,7 +63,7 @@ def write_quality_metrics():
         spark.createDataFrame(rows, "check_name STRING, passed_count LONG, failed_count LONG")
         .withColumn("checked_at", F.current_timestamp())
         .write.format("delta").mode("append")
-        .saveAsTable("churn_prediction.bronze.data_quality_metrics")
+        .saveAsTable("churn_pilot.bronze.data_quality_metrics")
     )
 
 
@@ -75,5 +75,5 @@ write_quality_metrics()
 # Uncomment to render the Delta metrics table back into the legacy report format:
 #
 # import pandas as pd
-# metrics_pdf = spark.table("churn_prediction.bronze.data_quality_metrics").toPandas()
-# metrics_pdf.to_excel("/Volumes/churn_prediction/bronze/landing_volume/reports/data_quality_report.xlsx", index=False)
+# metrics_pdf = spark.table("churn_pilot.bronze.data_quality_metrics").toPandas()
+# metrics_pdf.to_excel("/Volumes/churn_pilot/bronze/landing_volume/reports/data_quality_report.xlsx", index=False)
