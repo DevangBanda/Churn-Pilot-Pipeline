@@ -15,5 +15,5 @@ CREATE EXTERNAL LOCATION IF NOT EXISTS churn_landing_location
 
 -- UC Volume on top of the external location — the Databricks-native replacement
 -- for data/raw/<ts>.csv and data/raw/sources/.../ partitioned local copies.
-CREATE VOLUME IF NOT EXISTS churn_prediction.bronze.landing_volume
+CREATE VOLUME IF NOT EXISTS churn_pilot.bronze.landing_volume
   COMMENT 'Landing volume for raw ingested files (replaces local data/raw/ tree)';

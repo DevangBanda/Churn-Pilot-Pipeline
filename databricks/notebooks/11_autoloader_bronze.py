@@ -6,17 +6,17 @@
 
 # COMMAND ----------
 # CELL 1 — assertion (run first; expect AnalysisException: Table or view not found)
-df = spark.table("churn_prediction.bronze.customer_churn_raw")
+df = spark.table("churn_pilot.bronze.customer_churn_raw")
 assert df.count() > 0, "Expected at least one row in bronze.customer_churn_raw"
 assert "_ingested_at" in df.columns, "Expected Auto Loader metadata column _ingested_at"
 
 # COMMAND ----------
 from pyspark.sql import functions as F
 
-LANDING_PATH = "/Volumes/churn_prediction/bronze/landing_volume"
-CHECKPOINT_PATH = "/Volumes/churn_prediction/bronze/landing_volume/_checkpoints/customer_churn_raw"
-BRONZE_TABLE = "churn_prediction.bronze.customer_churn_raw"
-LOG_TABLE = "churn_prediction.bronze.pipeline_logs"
+LANDING_PATH = "/Volumes/churn_pilot/bronze/landing_volume"
+CHECKPOINT_PATH = "/Volumes/churn_pilot/bronze/landing_volume/_checkpoints/customer_churn_raw"
+BRONZE_TABLE = "churn_pilot.bronze.customer_churn_raw"
+LOG_TABLE = "churn_pilot.bronze.pipeline_logs"
 
 # COMMAND ----------
 # Structured logging table — replaces utils/logger.py's per-stage logs/<pipeline_name>.log
@@ -64,6 +64,6 @@ print(f"Bronze load complete. Row count: {spark.table(BRONZE_TABLE).count()}")
 
 # COMMAND ----------
 # Step 4 — verify lineage replaces the JSON catalog (UI check, not executable code)
-# In Catalog Explorer UI: churn_prediction > bronze > customer_churn_raw > Lineage tab
+# In Catalog Explorer UI: churn_pilot > bronze > customer_churn_raw > Lineage tab
 # Expected: shows 10_ingestion_to_landing.py's landing volume as the upstream source —
 # this is the UC-native equivalent of data/raw/data_catalog.json

@@ -1,10 +1,10 @@
 # churn_pipeline_job.yml — recreates the 9-node DAG from
-# airflow/dags/churn_prediction_pipeline.py 1:1, including its operational settings:
+# airflow/dags/churn_pilot_pipeline.py 1:1, including its operational settings:
 # retries=1, retry_delay=5min, schedule=every 6 hours, catchup=False, max_active_runs=1.
 resources:
   jobs:
-    churn_prediction_pipeline:
-      name: churn_prediction_pipeline
+    churn_pilot_pipeline:
+      name: churn_pilot_pipeline
       max_concurrent_runs: 1   # == Airflow's max_active_runs=1
 
       schedule:

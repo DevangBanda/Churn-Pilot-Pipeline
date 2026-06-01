@@ -9,7 +9,7 @@
 # CELL 1 — assertion (run first, before legacy outputs have been exported for comparison;
 # expect FileNotFoundError because the comparison CSVs don't exist yet)
 import pandas as pd
-legacy_gold = pd.read_csv("/Volumes/churn_prediction/bronze/landing_volume/legacy_export/training_set_latest.csv")
+legacy_gold = pd.read_csv("/Volumes/churn_pilot/bronze/landing_volume/legacy_export/training_set_latest.csv")
 assert len(legacy_gold) > 0
 
 # COMMAND ----------
@@ -18,15 +18,15 @@ assert len(legacy_gold) > 0
 # (main_pipeline.py, or trigger the Airflow DAG), locate its output at
 # data/processed/training_sets/<set_id>.csv, and stage it for comparison with:
 #   databricks fs cp data/processed/training_sets/<set_id>.csv \
-#     dbfs:/Volumes/churn_prediction/bronze/landing_volume/legacy_export/training_set_latest.csv
+#     dbfs:/Volumes/churn_pilot/bronze/landing_volume/legacy_export/training_set_latest.csv
 # Only once that file exists will CELL 1 above stop raising FileNotFoundError and the
 # parity comparisons below become runnable.
 
 import pandas as pd
 from pyspark.sql import functions as F
 
-LEGACY_CSV = "/Volumes/churn_prediction/bronze/landing_volume/legacy_export/training_set_latest.csv"
-GOLD_TABLE = "churn_prediction.gold.customer_features"
+LEGACY_CSV = "/Volumes/churn_pilot/bronze/landing_volume/legacy_export/training_set_latest.csv"
+GOLD_TABLE = "churn_pilot.gold.customer_features"
 
 legacy_pdf = pd.read_csv(LEGACY_CSV)
 gold_df = spark.table(GOLD_TABLE)
@@ -52,7 +52,7 @@ assert rate_diff < 0.01, "Churn-rate distribution parity check failed (>1pp diff
 #    that build_model.py logged into MLflow's file:///tmp/mlflow-runs store on the legacy box
 from mlflow import MlflowClient
 client = MlflowClient(registry_uri="databricks-uc")
-latest_version = client.get_registered_model("churn_prediction.ml.churn_model").latest_versions[0]
+latest_version = client.get_registered_model("churn_pilot.ml.churn_model").latest_versions[0]
 new_run = client.get_run(latest_version.run_id)
 new_f1 = new_run.data.metrics["f1"]
 

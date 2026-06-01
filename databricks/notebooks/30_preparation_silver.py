@@ -7,7 +7,7 @@
 
 # COMMAND ----------
 # CELL 1 — assertion (run first; expect AnalysisException: Table or view not found)
-silver = spark.table("churn_prediction.silver.customer_churn_clean")
+silver = spark.table("churn_pilot.silver.customer_churn_clean")
 expected_engineered_cols = {"tenure_group", "charges_per_tenure", "total_to_monthly_ratio", "avg_monthly_charges"}
 assert expected_engineered_cols.issubset(set(silver.columns)), \
     f"Missing engineered columns: {expected_engineered_cols - set(silver.columns)}"
@@ -19,8 +19,8 @@ from pyspark.sql import functions as F
 from pyspark.ml.feature import StandardScaler, VectorAssembler
 from pyspark.ml import Pipeline
 
-SOURCE_TABLE = "churn_prediction.bronze.customer_churn_validated"  # output of the DLT pipeline (Task 4)
-TARGET_TABLE = "churn_prediction.silver.customer_churn_clean"
+SOURCE_TABLE = "churn_pilot.bronze.customer_churn_validated"  # output of the DLT pipeline (Task 4)
+TARGET_TABLE = "churn_pilot.silver.customer_churn_clean"
 
 df = spark.table(SOURCE_TABLE)
 

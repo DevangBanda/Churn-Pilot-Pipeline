@@ -10,7 +10,7 @@
 from databricks.feature_engineering import FeatureEngineeringClient
 fe = FeatureEngineeringClient()
 try:
-    fe.get_table(name="churn_prediction.ml.customer_features_fe")
+    fe.get_table(name="churn_pilot.ml.customer_features_fe")
     raise AssertionError("Expected the feature table NOT to exist yet")
 except Exception as e:
     assert "does not exist" in str(e).lower() or "not found" in str(e).lower(), f"Unexpected error: {e}"
@@ -20,8 +20,8 @@ print("OK: feature table does not exist yet, as expected")
 from databricks.feature_engineering import FeatureEngineeringClient, FeatureLookup
 
 fe = FeatureEngineeringClient()
-SOURCE_TABLE = "churn_prediction.gold.customer_features"
-FEATURE_TABLE = "churn_prediction.ml.customer_features_fe"
+SOURCE_TABLE = "churn_pilot.gold.customer_features"
+FEATURE_TABLE = "churn_pilot.ml.customer_features_fe"
 
 source_df = spark.table(SOURCE_TABLE)
 
@@ -68,6 +68,6 @@ print(f"Assembled training set: {training_df.count()} rows, {len(training_df.col
 
 # COMMAND ----------
 # Re-run as a sanity check that the table now exists (expect this to succeed, no exception)
-info = fe.get_table(name="churn_prediction.ml.customer_features_fe")
+info = fe.get_table(name="churn_pilot.ml.customer_features_fe")
 assert info.primary_keys == ["customerID"]
 print("OK: feature table now registered with primary key customerID")

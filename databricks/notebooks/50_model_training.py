@@ -10,11 +10,11 @@
 from mlflow import MlflowClient
 client = MlflowClient(registry_uri="databricks-uc")
 try:
-    client.get_registered_model("churn_prediction.ml.churn_model")
+    client.get_registered_model("churn_pilot.ml.churn_model")
     raise AssertionError("Expected the UC registered model NOT to exist yet")
 except Exception as e:
     assert "RESOURCE_DOES_NOT_EXIST" in str(e) or "not found" in str(e).lower(), f"Unexpected error: {e}"
-print("OK: churn_prediction.ml.churn_model not registered yet, as expected")
+print("OK: churn_pilot.ml.churn_model not registered yet, as expected")
 
 # COMMAND ----------
 import mlflow
@@ -33,17 +33,17 @@ from databricks.feature_engineering import FeatureEngineeringClient, FeatureLook
 fe = FeatureEngineeringClient()
 
 mlflow.set_registry_uri("databricks-uc")
-mlflow.set_experiment("/Shared/churn_prediction")
+mlflow.set_experiment("/Shared/churn_pilot")
 
-REGISTERED_MODEL_NAME = "churn_prediction.ml.churn_model"
+REGISTERED_MODEL_NAME = "churn_pilot.ml.churn_model"
 
 # create_training_set replaces build_model.get_latest_training_data's "glob latest CSV"
 # logic — pulls governed features from the Feature Engineering table registered in
 # Task 7, point-in-time correct by construction, instead of reading an ad-hoc CSV snapshot.
 training_set = fe.create_training_set(
-    df=spark.table("churn_prediction.gold.customer_features").select("customerID", "Churn"),
+    df=spark.table("churn_pilot.gold.customer_features").select("customerID", "Churn"),
     feature_lookups=[FeatureLookup(
-        table_name="churn_prediction.ml.customer_features_fe",
+        table_name="churn_pilot.ml.customer_features_fe",
         lookup_key="customerID",
         exclude_columns=["customerID", "Churn"],
     )],
@@ -100,6 +100,6 @@ for model_name, model in [
 
 # COMMAND ----------
 # Re-run as a sanity check that the model is now registered (expect this to succeed, no exception)
-model_info = client.get_registered_model("churn_prediction.ml.churn_model")
+model_info = client.get_registered_model("churn_pilot.ml.churn_model")
 assert len(model_info.latest_versions) >= 1
 print(f"OK: {model_info.name} has {len(model_info.latest_versions)} version(s) registered")

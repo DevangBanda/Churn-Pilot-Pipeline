@@ -4,12 +4,12 @@
 # same aggregated + interaction features and writes a single Gold Delta table —
 # replacing churn_data.db (SQLite: customer_features/feature_metadata/training_sets)
 # and data/processed/training_sets/<set_id>.csv wholesale. UC table comments +
-# `DESCRIBE HISTORY churn_prediction.gold.customer_features` replace feature_metadata
+# `DESCRIBE HISTORY churn_pilot.gold.customer_features` replace feature_metadata
 # and training_sets respectively.
 
 # COMMAND ----------
 # CELL 1 — assertion (run first; expect AnalysisException: Table or view not found)
-gold = spark.table("churn_prediction.gold.customer_features")
+gold = spark.table("churn_pilot.gold.customer_features")
 expected_cols = {
     "total_services", "service_density", "customer_value_segment",
     "tenure_stability", "high_risk_payment", "tenure_monthly_interaction",
@@ -20,8 +20,8 @@ assert gold.select("customerID").distinct().count() == gold.count(), "customerID
 # COMMAND ----------
 from pyspark.sql import functions as F
 
-SOURCE_TABLE = "churn_prediction.silver.customer_churn_clean"
-TARGET_TABLE = "churn_prediction.gold.customer_features"
+SOURCE_TABLE = "churn_pilot.silver.customer_churn_clean"
+TARGET_TABLE = "churn_pilot.gold.customer_features"
 
 silver = spark.table(SOURCE_TABLE)
 

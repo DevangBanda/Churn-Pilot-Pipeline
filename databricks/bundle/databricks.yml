@@ -2,7 +2,7 @@
 # Spiritual successor to dvc.yaml + docker-compose.yml: the whole target
 # environment (job, schedule, compute) is reproducible from source control.
 bundle:
-  name: churn_prediction_pipeline
+  name: churn_pilot_pipeline
 
 include:
   - resources/*.yml
@@ -17,4 +17,4 @@ targets:
     mode: production
     workspace:
       host: <WORKSPACE_URL>
-      root_path: /Shared/.bundle/churn_prediction_pipeline/${bundle.target}
+      root_path: /Shared/.bundle/churn_pilot_pipeline/${bundle.target}

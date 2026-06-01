@@ -1,7 +1,7 @@
 # Databricks notebook source
 # 60_model_serving.py
 # Optional post-migration enhancement (atlas Phase 6, step 19). Stands up a
-# Model Serving endpoint fronting the UC-registered churn_prediction.ml.churn_model —
+# Model Serving endpoint fronting the UC-registered churn_pilot.ml.churn_model —
 # the assignment's static .joblib deliverable becomes a live REST endpoint.
 
 # COMMAND ----------
@@ -10,7 +10,7 @@ from databricks.sdk import WorkspaceClient
 
 w = WorkspaceClient()
 try:
-    w.serving_endpoints.get("churn-prediction-endpoint")
+    w.serving_endpoints.get("churn-pilot-endpoint")
     raise AssertionError("Expected the serving endpoint NOT to exist yet")
 except Exception as e:
     assert "does not exist" in str(e).lower() or "not found" in str(e).lower()
@@ -19,8 +19,8 @@ print("OK: endpoint does not exist yet, as expected")
 # COMMAND ----------
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 
-ENDPOINT_NAME = "churn-prediction-endpoint"
-MODEL_NAME = "churn_prediction.ml.churn_model"
+ENDPOINT_NAME = "churn-pilot-endpoint"
+MODEL_NAME = "churn_pilot.ml.churn_model"
 MODEL_VERSION = "1"  # bump after promoting a new champion via the UC Model Registry UI
 
 w.serving_endpoints.create(
